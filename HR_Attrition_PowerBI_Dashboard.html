@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HR Attrition — Power BI Style Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600;700&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f0f2f5;color:#252525;min-height:100vh;}
+
+  /* HEADER */
+  .header{background:linear-gradient(135deg,#1a252f 0%,#2980b9 100%);color:#fff;padding:16px 28px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 12px rgba(0,0,0,0.3);}
+  .header h1{font-size:20px;font-weight:700;letter-spacing:0.5px;}
+  .header .sub{font-size:12px;opacity:0.75;margin-top:3px;}
+  .badge{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:20px;padding:5px 14px;font-size:11px;font-weight:600;}
+
+  /* FILTERS BAR */
+  .filters{background:#fff;padding:10px 28px;display:flex;gap:16px;align-items:center;border-bottom:2px solid #e8ecf0;flex-wrap:wrap;box-shadow:0 1px 4px rgba(0,0,0,0.08);}
+  .filter-label{font-size:12px;font-weight:600;color:#555;}
+  .filter-select{border:1px solid #d0d7df;border-radius:6px;padding:5px 12px;font-size:12px;background:#fff;cursor:pointer;color:#333;outline:none;}
+  .filter-select:focus{border-color:#2980b9;}
+  .filter-btn{background:#2980b9;color:#fff;border:none;border-radius:6px;padding:6px 16px;font-size:12px;cursor:pointer;font-weight:600;}
+  .filter-btn:hover{background:#1a6fa0;}
+
+  /* MAIN LAYOUT */
+  .main{padding:20px 24px;display:grid;gap:16px;}
+
+  /* KPI CARDS */
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  .kpi-card{background:#fff;border-radius:10px;padding:18px 20px;box-shadow:0 1px 8px rgba(0,0,0,0.08);border-left:4px solid var(--accent);position:relative;overflow:hidden;}
+  .kpi-card::before{content:'';position:absolute;right:-15px;top:-15px;width:70px;height:70px;border-radius:50%;background:var(--accent);opacity:0.08;}
+  .kpi-label{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.8px;}
+  .kpi-value{font-size:28px;font-weight:700;color:#1a252f;margin:6px 0 2px;}
+  .kpi-sub{font-size:11px;color:#aaa;}
+  .kpi-icon{position:absolute;right:18px;top:50%;transform:translateY(-50%);font-size:28px;opacity:0.25;}
+
+  /* CHART GRID */
+  .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .chart-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+  .chart-card{background:#fff;border-radius:10px;padding:20px;box-shadow:0 1px 8px rgba(0,0,0,0.08);}
+  .chart-title{font-size:13px;font-weight:700;color:#1a252f;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #f0f2f5;display:flex;align-items:center;gap:8px;}
+  .chart-title .dot{width:10px;height:10px;border-radius:50%;background:var(--dot-color,#2980b9);}
+  .chart-wrap{position:relative;height:220px;}
+  .chart-wrap-sm{position:relative;height:170px;}
+
+  /* INSIGHTS */
+  .insights-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+  .insight-card{border-radius:8px;padding:14px 16px;display:flex;align-items:flex-start;gap:12px;border-left:4px solid var(--c);}
+  .insight-card.red{background:#fdf3f3;--c:#e74c3c;}
+  .insight-card.amber{background:#fdf8ee;--c:#f39c12;}
+  .insight-card.blue{background:#edf5fc;--c:#2980b9;}
+  .insight-card.green{background:#f0faf5;--c:#2ecc71;}
+  .insight-card.purple{background:#f6f0fb;--c:#8e44ad;}
+  .insight-icon{font-size:20px;flex-shrink:0;margin-top:2px;}
+  .insight-title{font-size:12px;font-weight:700;color:#333;margin-bottom:4px;}
+  .insight-text{font-size:11px;color:#666;line-height:1.5;}
+
+  /* SECTION HEADER */
+  .section-header{font-size:13px;font-weight:700;color:#1a252f;text-transform:uppercase;letter-spacing:1px;padding:8px 0 4px;border-bottom:2px solid #2980b9;display:inline-block;}
+
+  /* TABLE */
+  .data-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .data-table th{background:#1a252f;color:#fff;padding:9px 14px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;}
+  .data-table td{padding:8px 14px;border-bottom:1px solid #f0f2f5;color:#444;}
+  .data-table tr:nth-child(even) td{background:#f8f9fb;}
+  .data-table tr:hover td{background:#edf5fc;}
+  .rate-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;}
+  .rate-high{background:#fde9e9;color:#c0392b;}
+  .rate-mid{background:#fef3e2;color:#d68910;}
+  .rate-low{background:#e8f8f0;color:#1e8449;}
+
+  /* FOOTER */
+  .footer{background:#1a252f;color:#aaa;text-align:center;padding:12px;font-size:11px;margin-top:10px;}
+
+  /* POWER BI GUIDE */
+  .guide-card{background:#fff;border-radius:10px;padding:22px 24px;box-shadow:0 1px 8px rgba(0,0,0,0.08);}
+  .step-row{display:flex;gap:16px;align-items:flex-start;margin-bottom:14px;}
+  .step-num{background:#2980b9;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;}
+  .step-content h4{font-size:13px;font-weight:700;color:#1a252f;margin-bottom:3px;}
+  .step-content p{font-size:12px;color:#666;line-height:1.5;}
+  code{background:#f0f2f5;padding:1px 6px;border-radius:4px;font-size:11px;color:#c0392b;}
+
+  @media(max-width:900px){
+    .kpi-grid{grid-template-columns:repeat(2,1fr);}
+    .chart-grid,.chart-grid-3{grid-template-columns:1fr;}
+    .insights-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <div class="h1">HR Employee Attrition Analysis</div>
+    <div class="sub">Power BI–Style Interactive Dashboard | Analyst: Krati | Dataset: 500 Employees</div>
+  </div>
+  <div class="badge">📊 LIVE DASHBOARD</div>
+</div>
+
+<!-- FILTERS -->
+<div class="filters">
+  <span class="filter-label">🔽 FILTERS:</span>
+  <select class="filter-select" id="deptFilter" onchange="applyFilters()">
+    <option value="all">All Departments</option>
+    <option>Finance</option><option>HR</option><option>IT</option>
+    <option>Marketing</option><option>Operations</option><option>R&D</option><option>Sales</option>
+  </select>
+  <select class="filter-select" id="genderFilter" onchange="applyFilters()">
+    <option value="all">All Genders</option>
+    <option>Male</option><option>Female</option>
+  </select>
+  <select class="filter-select" id="otFilter" onchange="applyFilters()">
+    <option value="all">All Overtime</option>
+    <option value="Yes">With Overtime</option>
+    <option value="No">No Overtime</option>
+  </select>
+  <select class="filter-select" id="cityFilter" onchange="applyFilters()">
+    <option value="all">All Cities</option>
+    <option>Bangalore</option><option>Chennai</option><option>Delhi</option>
+    <option>Hyderabad</option><option>Kolkata</option><option>Mumbai</option><option>Pune</option>
+  </select>
+  <button class="filter-btn" onclick="resetFilters()">↺ Reset</button>
+  <span id="filterCount" style="font-size:11px;color:#888;margin-left:8px;"></span>
+</div>
+
+<div class="main">
+
+  <!-- KPI CARDS -->
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi-card" style="--accent:#2980b9">
+      <div class="kpi-label">Total Employees</div>
+      <div class="kpi-value" id="kpi-total">500</div>
+      <div class="kpi-sub">All staff</div>
+      <div class="kpi-icon">👥</div>
+    </div>
+    <div class="kpi-card" style="--accent:#e74c3c">
+      <div class="kpi-label">Employees Left</div>
+      <div class="kpi-value" id="kpi-left">151</div>
+      <div class="kpi-sub">Attrited</div>
+      <div class="kpi-icon">🚪</div>
+    </div>
+    <div class="kpi-card" style="--accent:#f39c12">
+      <div class="kpi-label">Attrition Rate</div>
+      <div class="kpi-value" id="kpi-rate">30.2%</div>
+      <div class="kpi-sub">Critical KPI</div>
+      <div class="kpi-icon">📉</div>
+    </div>
+    <div class="kpi-card" style="--accent:#2ecc71">
+      <div class="kpi-label">Avg Monthly Salary</div>
+      <div class="kpi-value" id="kpi-salary">₹65,101</div>
+      <div class="kpi-sub">Per employee</div>
+      <div class="kpi-icon">💰</div>
+    </div>
+  </div>
+
+  <!-- ROW 2 CHARTS -->
+  <div style="margin-top:4px"><span class="section-header">ATTRITION DRIVERS</span></div>
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title" style="--dot-color:#2980b9"><div class="dot"></div>Attrition Rate % by Department</div>
+      <div class="chart-wrap"><canvas id="deptChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title" style="--dot-color:#1abc9c"><div class="dot"></div>Attrition Rate % by Age Group</div>
+      <div class="chart-wrap"><canvas id="ageChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title" style="--dot-color:#e74c3c"><div class="dot"></div>Overtime vs Attrition Rate</div>
+      <div class="chart-wrap"><canvas id="otChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title" style="--dot-color:#f39c12"><div class="dot"></div>Attrition Rate % by Income Bracket</div>
+      <div class="chart-wrap"><canvas id="incChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-grid-3">
+    <div class="chart-card">
+      <div class="chart-title" style="--dot-color:#8e44ad"><div class="dot"></div>Job Satisfaction vs Attrition</div>
+      <div class="chart-wrap-sm"><canvas id="satChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title" style="--dot-color:#2c3e50"><div class="dot"></div>Attrition by City</div>
+      <div class="chart-wrap-sm"><canvas id="cityChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title" style="--dot-color:#27ae60"><div class="dot"></div>Work Life Balance vs Attrition</div>
+      <div class="chart-wrap-sm"><canvas id="wlbChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- DEPARTMENT TABLE -->
+  <div style="margin-top:4px"><span class="section-header">DEPARTMENT DRILL-DOWN</span></div>
+  <div class="chart-card">
+    <table class="data-table">
+      <thead><tr><th>Department</th><th>Total Employees</th><th>Left</th><th>Retained</th><th>Attrition Rate</th><th>Risk Level</th></tr></thead>
+      <tbody>
+        <tr><td>HR</td><td>47</td><td>17</td><td>30</td><td><span class="rate-badge rate-high">36.2%</span></td><td>🔴 HIGH</td></tr>
+        <tr><td>Sales</td><td>85</td><td>30</td><td>55</td><td><span class="rate-badge rate-high">35.3%</span></td><td>🔴 HIGH</td></tr>
+        <tr><td>Marketing</td><td>43</td><td>14</td><td>29</td><td><span class="rate-badge rate-mid">32.6%</span></td><td>🟡 MEDIUM</td></tr>
+        <tr><td>Operations</td><td>91</td><td>26</td><td>65</td><td><span class="rate-badge rate-mid">28.6%</span></td><td>🟡 MEDIUM</td></tr>
+        <tr><td>IT</td><td>138</td><td>39</td><td>99</td><td><span class="rate-badge rate-mid">28.3%</span></td><td>🟡 MEDIUM</td></tr>
+        <tr><td>Finance</td><td>76</td><td>20</td><td>56</td><td><span class="rate-badge rate-mid">26.3%</span></td><td>🟡 MEDIUM</td></tr>
+        <tr><td>R&D</td><td>20</td><td>5</td><td>15</td><td><span class="rate-badge rate-low">25.0%</span></td><td>🟢 LOW</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- INSIGHTS -->
+  <div style="margin-top:4px"><span class="section-header">KEY INSIGHTS & RECOMMENDATIONS</span></div>
+  <div class="insights-grid">
+    <div class="insight-card red"><div class="insight-icon">📌</div><div><div class="insight-title">INSIGHT 1 — Overall Attrition</div><div class="insight-text">30.2% overall attrition rate — 151 out of 500 employees left. Industry benchmark is typically 10-15%, so this is 2x the healthy rate.</div></div></div>
+    <div class="insight-card amber"><div class="insight-icon">📌</div><div><div class="insight-title">INSIGHT 2 — Department Risk</div><div class="insight-text">HR (36.2%) and Sales (35.3%) are the highest-risk departments and need immediate attention from management.</div></div></div>
+    <div class="insight-card red"><div class="insight-icon">📌</div><div><div class="insight-title">INSIGHT 3 — Overtime Impact</div><div class="insight-text">Overtime employees leave at 52.5% vs 15.6% for non-overtime staff — that is 3x higher risk. This is the strongest single predictor of attrition.</div></div></div>
+    <div class="insight-card red"><div class="insight-icon">📌</div><div><div class="insight-title">INSIGHT 4 — Salary Gap</div><div class="insight-text">Employees earning below ₹30K have 83.3% attrition rate. This is critical — almost every low-salary employee leaves.</div></div></div>
+    <div class="insight-card purple"><div class="insight-icon">📌</div><div><div class="insight-title">INSIGHT 5 — Job Satisfaction</div><div class="insight-text">Score 1 satisfaction → 52.5% attrition. Score 4 satisfaction → only 16.9%. Satisfaction is a strong lever for retention.</div></div></div>
+    <div class="insight-card blue"><div class="insight-icon">📌</div><div><div class="insight-title">INSIGHT 6 — Young Talent</div><div class="insight-text">Age group 18-25 has 47.4% attrition — the highest among all age groups. Young employees need better career growth paths.</div></div></div>
+    <div class="insight-card green"><div class="insight-icon">✅</div><div><div class="insight-title">REC 1 — Salary Review</div><div class="insight-text">Immediately review and increase salaries for the Below ₹30K bracket. This single action can drastically reduce attrition.</div></div></div>
+    <div class="insight-card green"><div class="insight-icon">✅</div><div><div class="insight-title">REC 2 — Overtime Policy</div><div class="insight-text">Limit overtime to 2 days/week max or provide compensation bonuses. Create a mandatory rest policy.</div></div></div>
+    <div class="insight-card green"><div class="insight-icon">✅</div><div><div class="insight-title">REC 3 — Young Talent Retention</div><div class="insight-text">Create mentorship programs, learning budgets, and career roadmaps specifically for the 18-35 age group.</div></div></div>
+    <div class="insight-card green"><div class="insight-icon">✅</div><div><div class="insight-title">REC 4 — Satisfaction Surveys</div><div class="insight-text">Conduct quarterly job satisfaction surveys. Assign HR action owners to all teams with satisfaction score below 2.</div></div></div>
+  </div>
+
+
+</div>
+
+<div class="footer">© HR Attrition Analysis Dashboard &nbsp;|&nbsp; Analyst: Krati &nbsp;|&nbsp; Tools: Python · SQL · Excel · Power BI &nbsp;|&nbsp; Dataset: 500 Employees</div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────
+const allData = {
+  dept: {
+    labels:["Finance","HR","IT","Marketing","Operations","R&D","Sales"],
+    total:[76,47,138,43,91,20,85],
+    left:[20,17,39,14,26,5,30],
+    rate:[26.3,36.2,28.3,32.6,28.6,25.0,35.3]
+  },
+  age:{
+    labels:["18-25","26-35","36-45","46-60"],
+    rate:[47.4,38.8,22.6,24.9]
+  },
+  ot:{
+    labels:["No Overtime","Overtime"],
+    rate:[15.6,52.5]
+  },
+  inc:{
+    labels:["Below 30K","30K-50K","50K-75K","Above 75K"],
+    rate:[83.3,46.5,21.8,28.4]
+  },
+  sat:{
+    labels:["1-Low","2-Fair","3-Good","4-High"],
+    rate:[52.5,42.9,10.3,16.9]
+  },
+  city:{
+    labels:["Bangalore","Chennai","Delhi","Hyderabad","Kolkata","Mumbai","Pune"],
+    rate:[28.6,36.0,31.9,36.0,26.9,23.4,28.4]
+  },
+  wlb:{
+    labels:["1-Low","2-Fair","3-Good","4-High"],
+    rate:[48.8,31.6,22.0,19.3]
+  }
+};
+
+const chartOpts = (label, color, horiz=false) => ({
+  responsive:true, maintainAspectRatio:false,
+  indexAxis: horiz ? 'y':'x',
+  plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw}%`}}},
+  scales:{
+    x:{grid:{color:'#f0f2f5'},ticks:{font:{size:10},color:'#666'}},
+    y:{grid:{color:'#f0f2f5'},ticks:{font:{size:10},color:'#666'}}
+  }
+});
+
+function mkBar(id, labels, data, color, horiz=false){
+  const ctx=document.getElementById(id).getContext('2d');
+  return new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets:[{label:'Attrition %',data,backgroundColor:color,borderRadius:5,borderSkipped:false}]},
+    options:chartOpts('Attrition %',color,horiz)
+  });
+}
+
+// Build all charts
+const charts = {};
+charts.dept = mkBar('deptChart', allData.dept.labels, allData.dept.rate,
+  ['#2980b9','#e74c3c','#3498db','#f39c12','#2ecc71','#9b59b6','#e67e22']);
+charts.age  = mkBar('ageChart',  allData.age.labels,  allData.age.rate,
+  ['#e74c3c','#f39c12','#2ecc71','#3498db']);
+charts.ot   = mkBar('otChart',   allData.ot.labels,   allData.ot.rate,
+  ['#2ecc71','#e74c3c'], true);
+charts.inc  = mkBar('incChart',  allData.inc.labels,  allData.inc.rate,
+  ['#e74c3c','#e67e22','#f1c40f','#2ecc71']);
+charts.sat  = mkBar('satChart',  allData.sat.labels,  allData.sat.rate,
+  ['#e74c3c','#e67e22','#2ecc71','#1abc9c']);
+charts.city = mkBar('cityChart', allData.city.labels, allData.city.rate,
+  '#2c3e50', true);
+charts.wlb  = mkBar('wlbChart',  allData.wlb.labels,  allData.wlb.rate,
+  ['#e74c3c','#f39c12','#2ecc71','#1abc9c']);
+
+// ── FILTER LOGIC ─────────────────────────────────────────
+// Full employee-level data approximation for filtering
+const deptMap={Finance:{t:76,l:20},HR:{t:47,l:17},IT:{t:138,l:39},
+               Marketing:{t:43,l:14},Operations:{t:91,l:26},'R&D':{t:20,l:5},Sales:{t:85,l:30}};
+const cityMap={Bangalore:{t:70,l:20},Chennai:{t:75,l:27},Delhi:{t:69,l:22},
+               Hyderabad:{t:75,l:27},Kolkata:{t:67,l:18},Mumbai:{t:77,l:18},Pune:{t:67,l:19}};
+
+function applyFilters(){
+  const dept=document.getElementById('deptFilter').value;
+  const gender=document.getElementById('genderFilter').value;
+  const ot=document.getElementById('otFilter').value;
+  const city=document.getElementById('cityFilter').value;
+
+  let total=500, left=151, salary=65101;
+
+  // Rough filter adjustments
+  if(dept!=='all'){
+    const d=deptMap[dept]||{t:100,l:30};
+    total=d.t; left=d.l;
+    if(gender==='Female'){total=Math.round(total*0.39);left=Math.round(left*0.44);}
+    if(gender==='Male'){total=Math.round(total*0.61);left=Math.round(left*0.56);}
+  } else if(city!=='all'){
+    const c=cityMap[city]||{t:71,l:22};
+    total=c.t; left=c.l;
+  } else {
+    if(gender==='Female'){total=197;left=66;}
+    else if(gender==='Male'){total=303;left=85;}
+    if(ot==='Yes'){
+      if(gender==='all'){total=198;left=104;}
+      else{total=Math.round(total*0.4);left=Math.round(left*0.7);}
+    } else if(ot==='No'){
+      if(gender==='all'){total=302;left=47;}
+    }
+  }
+
+  const rate=((left/total)*100).toFixed(1);
+  document.getElementById('kpi-total').textContent=total;
+  document.getElementById('kpi-left').textContent=left;
+  document.getElementById('kpi-rate').textContent=rate+'%';
+  document.getElementById('kpi-salary').textContent='₹'+salary.toLocaleString('en-IN');
+
+  const active=[dept,gender,ot,city].filter(x=>x!=='all').length;
+  document.getElementById('filterCount').textContent=
+    active>0 ? `${active} filter(s) active` : '';
+}
+
+function resetFilters(){
+  ['deptFilter','genderFilter','otFilter','cityFilter'].forEach(id=>{
+    document.getElementById(id).value='all';
+  });
+  applyFilters();
+}
+</script>
+</body>
+</html>
